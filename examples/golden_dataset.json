@@ -1,0 +1,66 @@
+[
+  {
+    "name": "full_state_name",
+    "input": "123 N Main St, Springfield, illinois, 62704",
+    "expected_output": "123 North Main Street, Springfield, IL, 62704",
+    "expected_corrections": [
+      {"field": "state", "original": "illinois", "corrected": "IL", "rule": "state_abbreviation"},
+      {"field": "street_direction", "original": "N", "corrected": "North", "rule": "directional_expansion"},
+      {"field": "street_suffix", "original": "St", "corrected": "Street", "rule": "suffix_standardization"}
+    ],
+    "tags": ["state", "directional", "suffix"]
+  },
+  {
+    "name": "lowercase_city",
+    "input": "456 Oak Ave Apt 2, new york, NY, 10001",
+    "expected_output": "456 Oak Avenue Apartment 2, New York, NY, 10001",
+    "expected_corrections": [
+      {"field": "street_suffix", "original": "Ave", "corrected": "Avenue", "rule": "suffix_standardization"},
+      {"field": "secondary_designator", "original": "Apt", "corrected": "Apartment", "rule": "unit_designator_standardization"},
+      {"field": "city", "original": "new york", "corrected": "New York", "rule": "city_case_normalization"}
+    ],
+    "tags": ["suffix", "unit", "city_case"]
+  },
+  {
+    "name": "multi_word_directional",
+    "input": "789 SW Elm Blvd, portland, oregon, 97201",
+    "expected_output": "789 Southwest Elm Boulevard, Portland, OR, 97201",
+    "expected_corrections": [
+      {"field": "street_direction", "original": "SW", "corrected": "Southwest", "rule": "directional_expansion"},
+      {"field": "street_suffix", "original": "Blvd", "corrected": "Boulevard", "rule": "suffix_standardization"},
+      {"field": "city", "original": "portland", "corrected": "Portland", "rule": "city_case_normalization"},
+      {"field": "state", "original": "oregon", "corrected": "OR", "rule": "state_abbreviation"}
+    ],
+    "tags": ["directional", "suffix", "city_case", "state"]
+  },
+  {
+    "name": "suite_and_state",
+    "input": "1010 E Pine Dr Ste 300, austin, texas, 78701",
+    "expected_output": "1010 East Pine Drive Suite 300, Austin, TX, 78701",
+    "expected_corrections": [
+      {"field": "street_direction", "original": "E", "corrected": "East", "rule": "directional_expansion"},
+      {"field": "street_suffix", "original": "Dr", "corrected": "Drive", "rule": "suffix_standardization"},
+      {"field": "secondary_designator", "original": "Ste", "corrected": "Suite", "rule": "unit_designator_standardization"},
+      {"field": "city", "original": "austin", "corrected": "Austin", "rule": "city_case_normalization"},
+      {"field": "state", "original": "texas", "corrected": "TX", "rule": "state_abbreviation"}
+    ],
+    "tags": ["directional", "suffix", "unit", "city_case", "state"]
+  },
+  {
+    "name": "already_correct",
+    "input": "200 North Cedar Court, Seattle, WA, 98101",
+    "expected_output": "200 North Cedar Court, Seattle, WA, 98101",
+    "expected_corrections": [],
+    "tags": ["no_change"]
+  },
+  {
+    "name": "short_zip",
+    "input": "50 Main St, Boston, MA, 2101",
+    "expected_output": "50 Main Street, Boston, MA, 02101",
+    "expected_corrections": [
+      {"field": "street_suffix", "original": "St", "corrected": "Street", "rule": "suffix_standardization"},
+      {"field": "zip_code", "original": "2101", "corrected": "02101", "rule": "zip_format_normalization"}
+    ],
+    "tags": ["suffix", "zip"]
+  }
+]

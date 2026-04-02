@@ -1,13 +1,15 @@
 # Address Correction Trace
 
-A Python tool that validates, corrects, and traces changes made to mailing addresses. It produces a structured trace artifact documenting every correction applied, useful for auditing, debugging, and compliance.
+A service-like Python tool that validates, corrects, and traces changes made to mailing addresses. Includes a deepeval-style evaluation framework with AI behavior analysis metrics and an HTML findings dashboard.
 
 ## Features
 
-- **Address Parsing** — Breaks raw address strings into structured components (street, city, state, ZIP)
-- **Address Correction** — Applies common fixes: state abbreviation normalization, ZIP code formatting, directional expansion, suffix standardization
-- **Trace Artifact Generation** — Produces a detailed JSON artifact recording each correction with before/after values and rule references
-- **CLI Interface** — Process single addresses or batch files from the command line
+- **Address Correction** — Parses and corrects addresses: state abbreviation, ZIP formatting, directional expansion, suffix standardization, case normalization
+- **Trace Artifacts** — Structured JSON artifacts documenting every correction with before/after values and rule references
+- **Evaluation Framework** — deepeval-style test cases, metrics, `evaluate()`, and `assert_test()` for scoring corrector behavior
+- **AI Behavior Metrics** — Accuracy, completeness, over-correction, under-correction, confidence calibration, field-level accuracy
+- **Findings Dashboard** — Self-contained HTML dashboard with charts, behavioral insights, and per-test detail
+- **Service Layer** — Programmatic API + HTTP server for integration
 
 ## Installation
 
@@ -17,79 +19,148 @@ pip install -r requirements.txt
 
 ## Usage
 
-### CLI
+### CLI — Correct Addresses
 
 ```bash
-# Correct a single address
+# Single address
 python -m address_tracer correct "123 N Main St, Springfield, illinois, 62704"
 
-# Process a batch file (one address per line)
+# Batch file (one address per line)
 python -m address_tracer batch addresses.txt -o results/
 
-# Output trace artifact only
+# JSON trace artifact
 python -m address_tracer correct "456 Oak Ave, NY, NY 10001" --format json
 ```
 
-### Python API
+### CLI — Evaluate Against Golden Dataset
+
+```bash
+# Run evaluation and print results
+python -m address_tracer evaluate examples/golden_dataset.json
+
+# Generate HTML findings dashboard
+python -m address_tracer dashboard examples/golden_dataset.json -o report.html
+
+# Start as HTTP service
+python -m address_tracer serve --port 8080
+```
+
+### Python API — Correction
 
 ```python
 from address_tracer.corrector import AddressCorrector
 
 corrector = AddressCorrector()
 result = corrector.correct("123 N Main St, Springfield, illinois, 62704")
-
 print(result.corrected_address)
-print(result.trace.to_dict())
+print(result.trace.to_json())
 ```
 
-## Trace Artifact Format
+### Python API — Evaluation (deepeval-style)
 
-Each correction produces a trace artifact with the following structure:
+```python
+from address_tracer.evaluation import (
+    AddressTestCase, AccuracyMetric, CompletenessMetric,
+    OverCorrectionMetric, evaluate, assert_test,
+    EvaluationDataset,
+)
+from address_tracer.corrector import AddressCorrector
 
-```json
-{
-  "input": "123 N Main St, Springfield, illinois, 62704",
-  "corrected": "123 North Main Street, Springfield, IL, 62704",
-  "timestamp": "2026-04-02T12:00:00Z",
-  "corrections": [
-    {
-      "field": "state",
-      "original": "illinois",
-      "corrected": "IL",
-      "rule": "state_abbreviation"
-    },
-    {
-      "field": "street_direction",
-      "original": "N",
-      "corrected": "North",
-      "rule": "directional_expansion"
-    },
-    {
-      "field": "street_suffix",
-      "original": "St",
-      "corrected": "Street",
-      "rule": "suffix_standardization"
-    }
-  ],
-  "status": "corrected",
-  "confidence": 0.95
-}
+# Load golden dataset and generate test cases
+dataset = EvaluationDataset.from_json("examples/golden_dataset.json")
+dataset.generate_test_cases(AddressCorrector())
+
+# Evaluate with metrics
+result = evaluate(dataset, metrics=[
+    AccuracyMetric(threshold=0.8),
+    CompletenessMetric(threshold=0.8),
+    OverCorrectionMetric(threshold=0.8),
+])
+print(f"Pass rate: {result.pass_rate:.1%}")
+
+# Or use assert_test() in pytest
+def test_address():
+    tc = AddressTestCase(
+        input="123 N Main St, Springfield, illinois, 62704",
+        actual_output="123 North Main Street, Springfield, IL, 62704",
+        expected_output="123 North Main Street, Springfield, IL, 62704",
+    )
+    assert_test(tc, [AccuracyMetric(threshold=0.9)])
 ```
+
+### Python API — Service
+
+```python
+from address_tracer.service import AddressTracerService
+
+svc = AddressTracerService()
+
+# Correct
+trace = svc.correct("123 N Main St, Springfield, illinois, 62704")
+
+# Evaluate + dashboard in one call
+summary = svc.run_full_pipeline("examples/golden_dataset.json", "dashboard.html")
+```
+
+### HTTP API
+
+```bash
+# Start server
+python -m address_tracer serve --port 8080
+
+# Correct an address
+curl -X POST http://localhost:8080/correct \
+  -H "Content-Type: application/json" \
+  -d '{"address": "123 N Main St, Springfield, illinois, 62704"}'
+
+# Evaluate against golden records
+curl -X POST http://localhost:8080/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"goldens": [{"input": "...", "expected_output": "..."}]}'
+```
+
+## Evaluation Metrics
+
+| Metric | What It Detects |
+|--------|----------------|
+| **AccuracyMetric** | Whether corrected output matches expected — detects wrong corrections, data loss |
+| **CompletenessMetric** | Whether all expected corrections were applied — detects missed fixes |
+| **OverCorrectionMetric** | Corrections applied unnecessarily — detects hallucinated/spurious changes |
+| **UnderCorrectionMetric** | Expected corrections that were skipped — detects silent failures |
+| **ConfidenceCalibrationMetric** | Whether confidence scores align with actual correctness — detects overconfidence |
+| **FieldLevelAccuracyMetric** | Per-field correctness — reveals systematic weaknesses in specific fields |
 
 ## Project Structure
 
 ```
 address_tracer/
   __init__.py
-  corrector.py      # Core correction engine
-  parser.py         # Address parsing logic
-  trace.py          # Trace artifact model and generation
-  rules.py          # Correction rules and reference data
-  cli.py            # CLI entry point
+  corrector.py          # Core correction engine
+  parser.py             # Address parsing logic
+  trace.py              # Trace artifact model
+  rules.py              # Correction rules and reference data
+  cli.py                # CLI entry point
+  service.py            # Service layer (orchestrator)
+  server.py             # HTTP server
+  evaluation/
+    __init__.py
+    test_case.py        # AddressTestCase (deepeval-style)
+    metrics.py          # BaseMetric + 6 evaluation metrics
+    evaluate.py         # evaluate() and assert_test()
+    results.py          # MetricResult, TestResult, EvaluationResult
+    dataset.py          # EvaluationDataset, Golden
+  dashboard/
+    __init__.py
+    generator.py        # HTML dashboard generator
+examples/
+  sample_addresses.txt  # Sample batch input
+  golden_dataset.json   # Golden evaluation dataset
 tests/
   test_corrector.py
   test_parser.py
   test_trace.py
+  test_evaluation.py
+  test_service.py
 ```
 
 ## License

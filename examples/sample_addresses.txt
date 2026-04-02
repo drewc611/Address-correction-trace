@@ -1,0 +1,6 @@
+123 N Main St, Springfield, illinois, 62704
+456 Oak Ave Apt 2, new york, NY, 10001
+789 SW Elm Blvd, portland, oregon, 97201
+1010 E Pine Dr Ste 300, austin, texas, 78701
+55 W Maple Ln, denver, colorado, 80202
+200 NE Cedar Ct, seattle, washington, 98101

@@ -169,37 +169,15 @@ class OverCorrectionMetric(BaseMetric):
         return self.score
 
 
-class UnderCorrectionMetric(BaseMetric):
-    """Detects corrections that should have been applied but were not.
+class UnderCorrectionMetric(CompletenessMetric):
+    """Alias for CompletenessMetric — measures missed corrections.
 
-    AI behavior detected: missed errors, insufficient validation, silent failures.
-    Higher score = less under-correction (good).
+    Kept for backwards compatibility. Prefer CompletenessMetric directly.
     """
 
     @property
     def name(self) -> str:
         return "under_correction"
-
-    def measure(self, test_case: AddressTestCase) -> float:
-        if not test_case.expected_corrections:
-            self.score = 1.0
-            self.reason = "No expected corrections to compare."
-            self.success = self.is_successful()
-            return self.score
-
-        expected_fields = {c["field"] for c in test_case.expected_corrections}
-        actual_fields = {c["field"] for c in test_case.actual_corrections}
-        missed = expected_fields - actual_fields
-
-        if missed:
-            self.score = max(0.0, 1.0 - len(missed) / len(expected_fields))
-            self.reason = f"Under-correction: fields not corrected: {missed}"
-        else:
-            self.score = 1.0
-            self.reason = "All expected fields were corrected."
-
-        self.success = self.is_successful()
-        return self.score
 
 
 class ConfidenceCalibrationMetric(BaseMetric):

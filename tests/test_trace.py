@@ -23,7 +23,7 @@ class TestTraceArtifact:
         trace.add_correction("state", "illinois", "IL", "state_abbreviation")
         trace.finalize("corrected")
         assert trace.status == "corrected"
-        assert trace.confidence < 1.0
+        assert trace.confidence == 1.0
 
     def test_finalize_with_errors(self):
         trace = TraceArtifact(input_address="test")

@@ -82,7 +82,9 @@ class EvaluationResult:
 
     @property
     def pass_rate(self) -> float:
-        return self.passed / self.total if self.total else 0.0
+        if self.total == 0:
+            return float("nan")
+        return self.passed / self.total
 
     @property
     def metric_summaries(self) -> Dict[str, Dict[str, float]]:

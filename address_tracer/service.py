@@ -20,7 +20,6 @@ from .evaluation import (
     AccuracyMetric,
     CompletenessMetric,
     OverCorrectionMetric,
-    UnderCorrectionMetric,
     ConfidenceCalibrationMetric,
     FieldLevelAccuracyMetric,
     evaluate,
@@ -34,7 +33,6 @@ def default_metrics(threshold: float = 0.5):
         AccuracyMetric(threshold=threshold),
         CompletenessMetric(threshold=threshold),
         OverCorrectionMetric(threshold=threshold),
-        UnderCorrectionMetric(threshold=threshold),
         ConfidenceCalibrationMetric(threshold=threshold),
         FieldLevelAccuracyMetric(threshold=threshold),
     ]

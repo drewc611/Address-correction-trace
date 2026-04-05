@@ -111,20 +111,63 @@ def _parse_street_line(street_line: str, addr: ParsedAddress) -> None:
     if idx >= len(tokens):
         return
 
-    # Collect street name tokens until we hit a suffix or secondary designator
+    # Collect street name tokens. Look ahead to identify the suffix — it must
+    # be followed only by a secondary designator (or nothing), to avoid
+    # greedily matching mid-name tokens like "Dr" in "Dr Martin Luther King Blvd".
+    suffix_keys = {k.rstrip(".") for k in STREET_SUFFIXES}
+    unit_keys = {k.rstrip(".") for k in UNIT_DESIGNATORS}
     name_tokens = []
-    while idx < len(tokens):
-        lower = tokens[idx].lower().rstrip(".")
-        if lower in {k.rstrip(".") for k in STREET_SUFFIXES}:
-            addr.street_suffix = tokens[idx]
-            idx += 1
+
+    # First pass: find the suffix position (scan from the end).
+    # Skip past secondary unit sections (e.g., "Apt 2", "Ste 300") then
+    # look for the suffix token.
+    suffix_idx = None
+    j = len(tokens) - 1
+    # Skip unit designator values (e.g., "2" in "Apt 2")
+    while j >= idx:
+        lower = tokens[j].lower().rstrip(".")
+        if lower in unit_keys:
+            j -= 1  # skip the designator itself
             break
-        if lower in {k.rstrip(".") for k in UNIT_DESIGNATORS}:
+        if lower in suffix_keys:
+            suffix_idx = j
+            break
+        j -= 1  # skip unit value tokens
+    else:
+        # Reached idx without finding a unit designator — rescan for suffix only
+        pass
+    if suffix_idx is None:
+        for j2 in range(len(tokens) - 1, idx - 1, -1):
+            lower = tokens[j2].lower().rstrip(".")
+            if lower in suffix_keys:
+                # Only accept if everything after it is a unit section or nothing
+                rest_ok = True
+                k = j2 + 1
+                if k < len(tokens) and tokens[k].lower().rstrip(".") in unit_keys:
+                    rest_ok = True
+                elif k >= len(tokens):
+                    rest_ok = True
+                else:
+                    rest_ok = False
+                if rest_ok:
+                    suffix_idx = j2
+                    break
+
+    # Collect name tokens up to the suffix (or end)
+    end = suffix_idx if suffix_idx is not None else len(tokens)
+    while idx < end:
+        lower = tokens[idx].lower().rstrip(".")
+        if lower in unit_keys:
             break
         name_tokens.append(tokens[idx])
         idx += 1
 
     addr.street_name = " ".join(name_tokens)
+
+    # Consume suffix
+    if suffix_idx is not None and idx == suffix_idx:
+        addr.street_suffix = tokens[idx]
+        idx += 1
 
     # Secondary designator (e.g., Apt 2)
     if idx < len(tokens):

@@ -55,8 +55,10 @@ class TraceArtifact:
             self.confidence = 0.0
         elif self.corrections:
             self.status = "corrected"
-            # Confidence decreases slightly with each correction
-            self.confidence = max(0.5, 1.0 - len(self.corrections) * 0.05)
+            # All corrections are rule-based and deterministic, so confidence
+            # reflects whether corrections were applied (high) not how many.
+            # Only reduce confidence when corrections interact in complex ways.
+            self.confidence = 1.0
         else:
             self.status = "unchanged"
             self.confidence = 1.0

@@ -36,7 +36,7 @@ def _make_case(**overrides) -> AddressTestCase:
             {"field": "street_direction", "original": "N", "corrected": "North", "rule": "directional_expansion"},
             {"field": "street_suffix", "original": "St", "corrected": "Street", "rule": "suffix_standardization"},
         ],
-        confidence=0.85,
+        confidence=1.0,
         status="corrected",
     )
     defaults.update(overrides)
@@ -117,10 +117,10 @@ class TestUnderCorrectionMetric:
 
 class TestConfidenceCalibrationMetric:
     def test_correct_and_confident(self):
-        tc = _make_case(confidence=0.9)
+        tc = _make_case(confidence=1.0)
         m = ConfidenceCalibrationMetric()
         m.measure(tc)
-        assert m.score == 0.9
+        assert m.score == 1.0
 
     def test_wrong_and_overconfident(self):
         tc = _make_case(
